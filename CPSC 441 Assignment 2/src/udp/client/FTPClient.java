@@ -1,5 +1,18 @@
 package udp.client;
 
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 /**
  * FastFTP Class
  * FastFtp implements a basic FTP application based on UDP data transmission and 
@@ -18,6 +31,8 @@ public class FTPClient {
 	private String file_name;
 	private int timeout;
 	private static final int SERVER_PORT = 5555;
+	private DataOutputStream outputStream;
+	private DataInputStream inputStream;
 	
 	
     /**
@@ -46,13 +61,53 @@ public class FTPClient {
      */
 	public void send() {
 		
-		
+		try {
+			Path path = Paths.get(this.file_name);
+			byte [] fileBytes = Files.readAllBytes(path);
+			ServerSocket serverSocket = new ServerSocket(this.server_port);
+			Socket socket = new Socket(this.server_name,SERVER_PORT);
+			byte readByte = 1;
+			byte [] arrayByte = new byte[1];
+			
+			String stream = "";
+
+			outputStream = new DataOutputStream(socket.getOutputStream());
+			outputStream.writeUTF(this.file_name);
+			outputStream.flush();
+			inputStream = new DataInputStream(socket.getInputStream());
+
+			readByte = inputStream.readByte();
+			
+			if(readByte == 0)
+			{
+				
+			}
+			else
+			{
+				throw new Exception("No response given!");
+			}
+
+			System.out.println(readByte);
+			
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		
 		
 		/* send logic goes here. You may introduce addtional methods and classes*/
 	}
 
+	public boolean waitForResponse(byte readByte)
+	{
+		return (readByte != 0);
+		
+	}
 	
 
 /**
