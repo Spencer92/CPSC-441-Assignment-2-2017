@@ -76,9 +76,9 @@ public class FTPClient {
 		try {
 			Path path = Paths.get(this.file_name);
 			byte [] fileBytes = Files.readAllBytes(path);
-			ServerSocket serverSocket = new ServerSocket(this.server_port);
+//			ServerSocket serverSocket = new ServerSocket(this.server_port);
 			Socket socket = new Socket(this.server_name,SERVER_PORT);
-			Socket socket2 = new Socket(this.server_name, this.server_port);
+//			Socket socket2 = new Socket(this.server_name, this.server_port);
 			byte readByte = 1;
 			byte [] arrayByte = new byte[MAX_BYTE_SIZE];
 			Segment segment = new Segment();
@@ -103,8 +103,8 @@ public class FTPClient {
 			readByte = inputStream.readByte();
 			
 			
-			outputStream2 = new DataOutputStream(socket2.getOutputStream());
-			inputStream2 = new DataInputStream(socket2.getInputStream());
+//			outputStream2 = new DataOutputStream(socket2.getOutputStream());
+//			inputStream2 = new DataInputStream(socket2.getInputStream());
 			
 			if(readByte == 0)
 			{
@@ -113,6 +113,15 @@ public class FTPClient {
 				int indexByteArray = 0;
 				while(indexFileArray < fileBytes.length)
 				{
+					if(segmentCheck)
+					{
+						segment.setSeqNum(0);
+					}
+					else
+					{
+						segment.setSeqNum(1);
+					}
+					
 					while(indexByteArray < arrayByte.length && indexFileArray < fileBytes.length && indexByteArray < MAX_BYTE_SIZE)
 					{
 						arrayByte[indexByteArray] = fileBytes[indexFileArray];
@@ -121,7 +130,7 @@ public class FTPClient {
 					}
 					indexByteArray = 0;
 					segment.setPayload(arrayByte);
-					segment.setSeqNum(0);
+//					segment.setSeqNum(0);
 					System.out.println(segment.getLength());
 					System.out.println(segment.getBytes().length);
 					System.out.println(segment.getPayload().length);
@@ -137,45 +146,13 @@ public class FTPClient {
 							clientSocket.send(sendPacket);
 							receivePacket = new DatagramPacket(ACKCheck,ACKCheck.length);
 							
-/*							ActionListener getResponse = new ActionListener(){
-								@Override
-								public void actionPerformed(ActionEvent arg0) {
-									try {
-										clientSocket.receive(receivePacket);
-									} catch (IOException e) {
-										// TODO Auto-generated catch block
-										e.printStackTrace();
-									}
-									
-								}
-									};*/
-							
-//							Response getResponse = new Response(clientSocket, receiveSegment, readByte, receivePacket);
+
 							clientSocket.receive(receivePacket);
 							System.out.println(receivePacket);
-//							timer = new Timer(5000,getResponse);
-//							timer.start();
-							
-//								receiveSegment = new Segment(receivePacket);
-								readByte = receivePacket.getData()[0];	
+
+							readByte = receivePacket.getData()[0];	
 									
-/*							while(timer.isRunning())
-							{
-								clientSocket.receive(receivePacket);
-								receiveSegment = new Segment(receivePacket);
-								readByte = receiveSegment.getBytes()[0];
-								break;
-							}*/
-							
-//							outputStream2.write(segment.getSeqNum()); //Using outputStream causes server closure
-//							outputStream2.write(segment.getPayload());
-//							outputStream2.flush();
-/*
-							while(waitTime != 0 && readByte != 0)
-							{
-								readByte = inputStream.readByte();
-								waitTime--;
-							}*/
+
 						}while(readByte != 0);
 						System.out.println("Recieved ack 0");
 						segmentCheck = false;
@@ -185,21 +162,21 @@ public class FTPClient {
 						segment.setSeqNum(1);
 						do
 						{
-							outputStream2.write(segment.getSeqNum()); //Using outputStream causes server closure
-							outputStream2.write(segment.getPayload());
-							outputStream2.flush();
+							readByte = -1;
+							clientSocket.send(sendPacket);
+							receivePacket = new DatagramPacket(ACKCheck,ACKCheck.length);
 							
-							while(waitTime != 0 && readByte != 1)
-							{
-								wait(1);
-								readByte = inputStream.readByte();
-								waitTime--;
-							}
+							clientSocket.receive(receivePacket);
+							
+							readByte = receivePacket.getData()[0];
+
+
 							
 						}while(readByte != 1);
+						System.out.println("Received ack 1");
 						segmentCheck = true;
 					}
-
+					
 					readByte = -1;
 					waitTime = this.timeout;
 				}
