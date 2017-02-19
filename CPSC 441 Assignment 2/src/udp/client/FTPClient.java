@@ -91,7 +91,7 @@ public class FTPClient {
 			byte [] ACKCheck = new byte[1];
 			int indexFileInfo;
 			int indexSender;
-
+			//Taken in part from https://cyriacjames.files.wordpress.com/2016/09/udpclient.pdf
 			
 			//Used to write the data file information to the server
 			//And see if a response was generated

@@ -12,6 +12,7 @@ import udp.segment.Segment;
 /**
  * What this is meant to do is check to see if the data was received
  * Currently non-functional
+ * Taken in part from https://docs.oracle.com/javase/7/docs/api/javax/swing/Timer.html
  */
 public class Response implements ActionListener
 {
