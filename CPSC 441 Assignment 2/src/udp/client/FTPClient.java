@@ -45,6 +45,9 @@ public class FTPClient {
 	private DataOutputStream outputStream2;
 	private DataInputStream inputStream2;
 	private static final int MAX_BYTE_SIZE = 1000;
+	private static final int NO_DATA_RECEIVED = -1;
+	private static final int ACK_ZERO = 0;
+	private static final int ACK_ONE = 1;
 	
 	
     /**
@@ -75,110 +78,84 @@ public class FTPClient {
 		
 		try {
 			Path path = Paths.get(this.file_name);
-			byte [] fileBytes = Files.readAllBytes(path);
-//			ServerSocket serverSocket = new ServerSocket(this.server_port);
+			byte [] fileByteInfo = Files.readAllBytes(path);
 			Socket socket = new Socket(this.server_name,SERVER_PORT);
-//			Socket socket2 = new Socket(this.server_name, this.server_port);
-			byte readByte = 1;
-			byte [] arrayByte = new byte[MAX_BYTE_SIZE];
+			byte checkForReceivedInfo = 1;
+			byte [] dataToSend = new byte[MAX_BYTE_SIZE];
 			Segment segment = new Segment();
 			boolean segmentCheck = true;
-			int waitTime = this.timeout;
 			DatagramSocket clientSocket = new DatagramSocket();
 			DatagramPacket sendPacket;
 			DatagramPacket receivePacket;
 			InetAddress IPAddress = InetAddress.getByName("localhost");
 			byte [] ACKCheck = new byte[1];
-			Segment receiveSegment = null;
-			Timer timer;
-			
-			String stream = "";
+			int indexFileInfo;
+			int indexSender;
 
+			
+			//Used to write the data file information to the server
+			//And see if a response was generated
 			outputStream = new DataOutputStream(socket.getOutputStream());
 			outputStream.writeUTF(this.file_name);
 			outputStream.flush();
 			inputStream = new DataInputStream(socket.getInputStream());
-			
+			checkForReceivedInfo = inputStream.readByte();
 
-			readByte = inputStream.readByte();
 			
-			
-//			outputStream2 = new DataOutputStream(socket2.getOutputStream());
-//			inputStream2 = new DataInputStream(socket2.getInputStream());
-			
-			if(readByte == 0)
+			if(checkForReceivedInfo == ACK_ZERO)
 			{
-				readByte = -1;
-				int indexFileArray = 0;
-				int indexByteArray = 0;
-				while(indexFileArray < fileBytes.length)
+				checkForReceivedInfo = NO_DATA_RECEIVED;
+				indexFileInfo = 0;
+				indexSender = 0;
+				
+				//Keep sending information out until there
+				//No longer is any
+				while(indexFileInfo < fileByteInfo.length)
 				{
+					
+					//Used to initiate alternating values
 					if(segmentCheck)
 					{
 						segment.setSeqNum(0);
-					}
-					else
-					{
-						segment.setSeqNum(1);
-					}
-					
-					while(indexByteArray < arrayByte.length && indexFileArray < fileBytes.length && indexByteArray < MAX_BYTE_SIZE)
-					{
-						arrayByte[indexByteArray] = fileBytes[indexFileArray];
-						indexByteArray++;
-						indexFileArray++;
-					}
-					indexByteArray = 0;
-					segment.setPayload(arrayByte);
-//					segment.setSeqNum(0);
-					System.out.println(segment.getLength());
-					System.out.println(segment.getBytes().length);
-					System.out.println(segment.getPayload().length);
-					sendPacket = new DatagramPacket(segment.getBytes(),segment.getLength(),IPAddress,SERVER_PORT);
-					
-					
-					if(segmentCheck)
-					{
-						segment.setSeqNum(0);
-						do
-						{
-							readByte = -1;
-							clientSocket.send(sendPacket);
-							receivePacket = new DatagramPacket(ACKCheck,ACKCheck.length);
-							
-
-							clientSocket.receive(receivePacket);
-							System.out.println(receivePacket);
-
-							readByte = receivePacket.getData()[0];	
-									
-
-						}while(readByte != 0);
-						System.out.println("Recieved ack 0");
 						segmentCheck = false;
 					}
 					else
 					{
 						segment.setSeqNum(1);
-						do
-						{
-							readByte = -1;
-							clientSocket.send(sendPacket);
-							receivePacket = new DatagramPacket(ACKCheck,ACKCheck.length);
-							
-							clientSocket.receive(receivePacket);
-							
-							readByte = receivePacket.getData()[0];
-
-
-							
-						}while(readByte != 1);
-						System.out.println("Received ack 1");
 						segmentCheck = true;
 					}
 					
-					readByte = -1;
-					waitTime = this.timeout;
+					//Read the information from the file in order to send out a 1000 byte or less segment
+					while(indexSender < dataToSend.length && indexFileInfo < fileByteInfo.length && indexSender < MAX_BYTE_SIZE)
+					{
+						dataToSend[indexSender] = fileByteInfo[indexFileInfo];
+						indexSender++;
+						indexFileInfo++;
+					}
+					indexSender = 0;
+					
+					//prepare data for sending to server
+					segment.setPayload(dataToSend);
+					sendPacket = new DatagramPacket(segment.getBytes(),segment.getLength(),IPAddress,SERVER_PORT);
+					
+					
+					
+					 // Keep sending until a response is given.
+					 //Currently doesn't work with unreliable data send
+					 
+					do
+					{
+						checkForReceivedInfo = NO_DATA_RECEIVED;
+						clientSocket.send(sendPacket);
+						receivePacket = new DatagramPacket(ACKCheck,ACKCheck.length);
+						clientSocket.receive(receivePacket);
+						checkForReceivedInfo = receivePacket.getData()[0];	
+						
+						//segmentCheck is false for when receiving 0
+						//and true for receiving 1
+					}while((!segmentCheck && checkForReceivedInfo != ACK_ZERO) || 
+							(segmentCheck && checkForReceivedInfo != ACK_ONE));
+					
 				}
 			}
 			else
@@ -186,9 +163,10 @@ public class FTPClient {
 				throw new Exception("No response given!");
 			}
 
-			System.out.println(readByte);
 			
-			
+			outputStream.writeByte(0);
+			outputStream.close();
+			inputStream.close();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -197,6 +175,7 @@ public class FTPClient {
 			e.printStackTrace();
 		}
 		
+
 		
 		
 		/* send logic goes here. You may introduce addtional methods and classes*/

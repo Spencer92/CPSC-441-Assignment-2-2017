@@ -8,6 +8,11 @@ import java.net.DatagramSocket;
 
 import udp.segment.Segment;
 
+
+/**
+ * What this is meant to do is check to see if the data was received
+ * Currently non-functional
+ */
 public class Response implements ActionListener
 {
 	private DatagramSocket clientSocket;
@@ -26,6 +31,8 @@ public class Response implements ActionListener
 		this.receivePacket = receivePacket;
 	}
 	
+	
+
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
